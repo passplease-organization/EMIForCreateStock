@@ -16,7 +16,6 @@ import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.crafting.Ingredient;
 import org.apache.logging.log4j.util.TriConsumer;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -42,6 +41,7 @@ public class StockRequestHandler implements StandardRecipeHandler<StockKeeperReq
         return true;
     }
 
+    // TODO 收藏合成表无效
     @Override
     public boolean canCraft(EmiRecipe recipe, EmiCraftContext<StockKeeperRequestMenu> context) {
         AbstractContainerScreen<StockKeeperRequestMenu> abstractContainerScreen = context.getScreen();
@@ -56,18 +56,15 @@ public class StockRequestHandler implements StandardRecipeHandler<StockKeeperReq
         AbstractContainerScreen<StockKeeperRequestMenu> abstractContainerScreen = context.getScreen();
         if(abstractContainerScreen instanceof StockKeeperRequestScreen screen){
             List<BigItemStack> stacks = new ArrayList<>();
-            for(EmiIngredient ingredient : recipe.getInputs()){
-                if(!enoughIngredients(context.getAmount(),context.getInventory(),screen,ingredient,(ignore,amount,stack) -> {
-                    if(amount <= 0 || stack == null)
-                        return;
-                    Optional<BigItemStack> optional = stacks.stream().filter(bigItemStack -> ItemStack.isSameItemSameComponents(bigItemStack.stack, stack.stack)).findFirst();
-                    if(optional.isPresent()){
-                        optional.get().count += amount;
-                    }else stacks.add(new BigItemStack(stack.stack,Math.toIntExact(amount)));
-                    stack.count -= Math.toIntExact(amount);
-                }))
-                    return false;
-            }
+            if(!enoughIngredients(recipe.getInputs(),screen, context.getAmount(), context.getInventory(),(ignore,amount,stack) -> {
+                if(amount <= 0 || stack == null)
+                    return;
+                Optional<BigItemStack> optional = stacks.stream().filter(bigItemStack -> ItemStack.isSameItemSameComponents(bigItemStack.stack, stack.stack)).findFirst();
+                if(optional.isPresent()){
+                    optional.get().count = Math.toIntExact(amount);
+                }else stacks.add(new BigItemStack(stack.stack,Math.toIntExact(amount)));
+            }))
+                return false;
             moveItems(screen,stacks);
             return true;
         }
@@ -80,7 +77,7 @@ public class StockRequestHandler implements StandardRecipeHandler<StockKeeperReq
         for (EmiStack stack : ingredient.getEmiStacks()) {
             long amount = ingredient.getAmount() * requiredAmount;
             if (requiredAmount < Integer.MAX_VALUE && playerInventory.inventory.containsKey(stack)) {
-                amount -= playerInventory.inventory.get(stack).getAmount();// TODO 不同槽位重复计数
+                amount -= playerInventory.inventory.get(stack).getAmount();
                 if (amount <= 0) {
                     if(action != null)
                         action.accept(stack, amount,null);
@@ -105,13 +102,13 @@ public class StockRequestHandler implements StandardRecipeHandler<StockKeeperReq
         return requiredAmount == Integer.MAX_VALUE;
     }
 
-    protected boolean enoughIngredients(List<EmiIngredient> ingredients,StockKeeperRequestScreen screen,int amount,EmiPlayerInventory playerInventory,@Nullable TriConsumer<EmiStack,Long,@Nullable BigItemStack> action){
+    protected boolean enoughIngredients(List<EmiIngredient> ingredients,StockKeeperRequestScreen screen,int craftTimes,EmiPlayerInventory playerInventory,@Nullable TriConsumer<EmiStack,Long,@Nullable BigItemStack> action){
         Map<EmiIngredient,Integer> foundIngredients = new HashMap<>();
         for (EmiIngredient ingredient : ingredients) {
             Optional<Map.Entry<EmiIngredient, Integer>> foundIngredient = foundIngredients.entrySet().stream()
                     .filter(entry -> EmiIngredient.areEqual(ingredient, entry.getKey()))
                     .findFirst();
-            int count = Math.toIntExact(ingredient.getAmount() * amount);
+            int count = Math.toIntExact(ingredient.getAmount() * craftTimes);
             boolean present = foundIngredient.isPresent();
             if(present) {
                 count += foundIngredient.get().getValue();
@@ -138,11 +135,20 @@ public class StockRequestHandler implements StandardRecipeHandler<StockKeeperReq
     protected void moveItems(@NotNull StockKeeperRequestScreen screen,@NotNull List<BigItemStack> stacks){
         clearRecipe(screen);
         for(BigItemStack stack : stacks){
-            screen.itemsToOrder.add(stack);
+            if(screen.itemsToOrder.size() < 9)
+                screen.itemsToOrder.add(stack);
             if(screen.itemsToOrder.size() >= 9)
                 sendRequest(screen,null);
         }
         sendRequest(screen,null);
+        if(!EMIForCreateStockConfig.sendIt()){
+            screen.itemsToOrder.forEach(stack -> {
+                for(List<BigItemStack> items : screen.displayedItems){
+                    items.stream().filter(bigItemStack -> bigItemStack.stack.is(stack.stack.getItem())).findFirst()
+                            .ifPresent(bigItemStack -> bigItemStack.count -= stack.count);
+                }
+            });
+        }
     }
 
     @Override

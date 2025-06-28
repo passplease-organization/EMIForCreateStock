@@ -5,7 +5,7 @@ This is a mod making you craft in Create Stock easier with Fill Recipe support. 
 This mod is developed for my use, and I just make it public if there are others need. After I finish all function, it will nearly not update. And I have a little time for coding, so even now, it may not update very fast.
 ## Problems
 At the early developing time, there is some problems, I will fix that in the later version.
-- [ ] Duplicate count player inventory between different craft slot.
+- [x] Duplicate count player inventory between different craft slot.
 - [ ] Internal missing slot draw.
 ## Planning
 - [ ] Allow set different package address.
