@@ -46,7 +46,7 @@ public class StockRequestHandler implements StandardRecipeHandler<StockKeeperReq
     public boolean canCraft(EmiRecipe recipe, EmiCraftContext<StockKeeperRequestMenu> context) {
         AbstractContainerScreen<StockKeeperRequestMenu> abstractContainerScreen = context.getScreen();
         if(abstractContainerScreen instanceof StockKeeperRequestScreen screen) {
-            return enoughIngredients(recipe.getInputs(),screen, context.getAmount(),context.getInventory(),null);
+            return enoughIngredients(recipe.getOutputs(),recipe.getInputs(),screen, context.getAmount(),context.getInventory(),null);
         }
         return false;
     }
@@ -56,7 +56,7 @@ public class StockRequestHandler implements StandardRecipeHandler<StockKeeperReq
         AbstractContainerScreen<StockKeeperRequestMenu> abstractContainerScreen = context.getScreen();
         if(abstractContainerScreen instanceof StockKeeperRequestScreen screen){
             List<BigItemStack> stacks = new ArrayList<>();
-            if(!enoughIngredients(recipe.getInputs(),screen, context.getAmount(), context.getInventory(),(ignore,amount,stack) -> {
+            if(!enoughIngredients(recipe.getOutputs(), recipe.getInputs(),screen, context.getAmount(), context.getInventory(),(ignore, amount, stack) -> {
                 if(amount <= 0 || stack == null)
                     return;
                 Optional<BigItemStack> optional = stacks.stream().filter(bigItemStack -> ItemStack.isSameItemSameComponents(bigItemStack.stack, stack.stack)).findFirst();
@@ -102,8 +102,19 @@ public class StockRequestHandler implements StandardRecipeHandler<StockKeeperReq
         return requiredAmount == Integer.MAX_VALUE;
     }
 
-    protected boolean enoughIngredients(List<EmiIngredient> ingredients,StockKeeperRequestScreen screen,int craftTimes,EmiPlayerInventory playerInventory,@Nullable TriConsumer<EmiStack,Long,@Nullable BigItemStack> action){
+    protected boolean enoughIngredients(List<EmiStack> outputs, List<EmiIngredient> ingredients, StockKeeperRequestScreen screen, int craftTimes, EmiPlayerInventory playerInventory, @Nullable TriConsumer<EmiStack,Long,@Nullable BigItemStack> action){
         Map<EmiIngredient,Integer> foundIngredients = new HashMap<>();
+        if(!outputs.isEmpty()){
+            EmiStack output = outputs.getFirst();
+            for(List<BigItemStack> items : screen.displayedItems){
+                Optional<BigItemStack> optional = items.stream().filter(bigItemStack -> bigItemStack.stack.is(output.getItemStack().getItem())).findFirst();
+                if(optional.isPresent()){
+                    if(action != null)
+                        action.accept(output,(long)optional.get().count,optional.get());
+                    craftTimes -= optional.get().count;
+                }
+            }
+        }
         for (EmiIngredient ingredient : ingredients) {
             Optional<Map.Entry<EmiIngredient, Integer>> foundIngredient = foundIngredients.entrySet().stream()
                     .filter(entry -> EmiIngredient.areEqual(ingredient, entry.getKey()))
