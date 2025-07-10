@@ -16,6 +16,7 @@ import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.crafting.Ingredient;
 import org.apache.logging.log4j.util.TriConsumer;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -41,6 +42,7 @@ public class StockRequestHandler implements StandardRecipeHandler<StockKeeperReq
         return true;
     }
 
+    // TODO 收藏合成表无效
     @Override
     public boolean canCraft(EmiRecipe recipe, EmiCraftContext<StockKeeperRequestMenu> context) {
         AbstractContainerScreen<StockKeeperRequestMenu> abstractContainerScreen = context.getScreen();
@@ -148,11 +150,20 @@ public class StockRequestHandler implements StandardRecipeHandler<StockKeeperReq
     protected void moveItems(@NotNull StockKeeperRequestScreen screen,@NotNull List<BigItemStack> stacks){
         clearRecipe(screen);
         for(BigItemStack stack : stacks){
-            screen.itemsToOrder.add(stack);
+            if(screen.itemsToOrder.size() < 9)
+                screen.itemsToOrder.add(stack);
             if(screen.itemsToOrder.size() >= 9)
                 sendRequest(screen,null);
         }
         sendRequest(screen,null);
+        if(!EMIForCreateStockConfig.sendIt()){
+            screen.itemsToOrder.forEach(stack -> {
+                for(List<BigItemStack> items : screen.displayedItems){
+                    items.stream().filter(bigItemStack -> bigItemStack.stack.is(stack.stack.getItem())).findFirst()
+                            .ifPresent(bigItemStack -> bigItemStack.count -= stack.count);
+                }
+            });
+        }
     }
 
     @Override
