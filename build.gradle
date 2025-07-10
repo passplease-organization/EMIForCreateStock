@@ -50,6 +50,9 @@ neoForge {
             server()
             programArgument '--nogui'
             systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
+            if(!project.file('run/server').exists())
+                mkdir(project.file('run/server'))
+            gameDirectory = project.file('run/server')
         }
 
         gameTestServer {
