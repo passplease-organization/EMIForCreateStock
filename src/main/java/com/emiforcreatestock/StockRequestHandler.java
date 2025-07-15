@@ -1,5 +1,6 @@
 package com.emiforcreatestock;
 
+import com.emiforcreatestock.Mixin.CategoryEntryMixin;
 import com.emiforcreatestock.Mixin.StockKeeperRequestScreenMixin;
 import com.simibubi.create.content.logistics.BigItemStack;
 import com.simibubi.create.content.logistics.stockTicker.StockKeeperRequestMenu;
@@ -16,7 +17,6 @@ import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.crafting.Ingredient;
 import org.apache.logging.log4j.util.TriConsumer;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -62,11 +62,11 @@ public class StockRequestHandler implements StandardRecipeHandler<StockKeeperReq
                     return;
                 Optional<BigItemStack> optional = stacks.stream().filter(bigItemStack -> ItemStack.isSameItemSameComponents(bigItemStack.stack, stack.stack)).findFirst();
                 if(optional.isPresent()){
-                    optional.get().count += amount;
+                    optional.get().count = Math.toIntExact(amount);
                 }else stacks.add(new BigItemStack(stack.stack,Math.toIntExact(amount)));
             }))
                 return false;
-            moveItems(screen,stacks);
+            moveItems(recipe,screen,stacks);
             return true;
         }
         return StandardRecipeHandler.super.craft(recipe, context);
@@ -140,6 +140,7 @@ public class StockRequestHandler implements StandardRecipeHandler<StockKeeperReq
     }
 
     protected void sendRequest(@NotNull StockKeeperRequestScreen screen,@Nullable String address){
+        // TODO 地址可以通过合成主副产物结合仓库分类判断发送地址
         if(!EMIForCreateStockConfig.sendIt())
             return;
         if(address != null)
@@ -147,15 +148,15 @@ public class StockRequestHandler implements StandardRecipeHandler<StockKeeperReq
         ((StockKeeperRequestScreenMixin)screen).emiforcreatestock$sendIt();
     }
 
-    protected void moveItems(@NotNull StockKeeperRequestScreen screen,@NotNull List<BigItemStack> stacks){
+    protected void moveItems(EmiRecipe recipe,@NotNull StockKeeperRequestScreen screen,@NotNull List<BigItemStack> stacks){
         clearRecipe(screen);
         for(BigItemStack stack : stacks){
             if(screen.itemsToOrder.size() < 9)
                 screen.itemsToOrder.add(stack);
             if(screen.itemsToOrder.size() >= 9)
-                sendRequest(screen,null);
+                sendRequest(screen,getAddress(recipe,screen));
         }
-        sendRequest(screen,null);
+        sendRequest(screen,getAddress(recipe,screen));
         if(!EMIForCreateStockConfig.sendIt()){
             screen.itemsToOrder.forEach(stack -> {
                 for(List<BigItemStack> items : screen.displayedItems){
@@ -164,6 +165,29 @@ public class StockRequestHandler implements StandardRecipeHandler<StockKeeperReq
                 }
             });
         }
+    }
+
+    public @Nullable String getAddress(EmiRecipe recipe,StockKeeperRequestScreen screen){
+        for(EmiStack output : recipe.getOutputs()){
+            for (int ordinary = 0; ordinary < screen.categories.size(); ordinary++) {
+                if(screen.displayedItems.get(ordinary).stream().anyMatch(stack ->
+                    ItemStack.isSameItem(stack.stack,output.getItemStack())
+                )) {
+                    return getAvailableAddress(((CategoryEntryMixin) screen.categories.get(ordinary)).getName());
+                }
+            }
+        }
+        return null;
+    }
+
+    public static @Nullable String getAvailableAddress(String categoryName){
+        if(forAddress(categoryName))
+            return categoryName.substring(1);
+        else return null;
+    }
+
+    public static boolean forAddress(String categoryName){
+        return categoryName.startsWith("#");
     }
 
     @Override

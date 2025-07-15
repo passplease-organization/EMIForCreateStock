@@ -8,7 +8,7 @@ At the early developing time, there is some problems, I will fix that in the lat
 - [x] Duplicate count player inventory between different craft slot.
 - [ ] Internal missing slot draw.
 ## Planning
-- [ ] Allow set different package address.
+- [x] Allow set different package address: add categories (name starts with "#") as add a normal category. When you request a recipe which output is filtered in one category, the address box will be automatically filled with category name ("#" be deleted)
 - [ ] Different package address depending on recipe type such as iron ore send to furnace automatically.
 ## License
 [MIT_License](https://mit-license.org/)
