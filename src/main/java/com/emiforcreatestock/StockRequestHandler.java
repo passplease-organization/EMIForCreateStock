@@ -3,6 +3,8 @@ package com.emiforcreatestock;
 import com.emiforcreatestock.Mixin.CategoryEntryMixin;
 import com.emiforcreatestock.Mixin.StockKeeperRequestScreenMixin;
 import com.simibubi.create.content.logistics.BigItemStack;
+import com.simibubi.create.content.logistics.filter.FilterItem;
+import com.simibubi.create.content.logistics.filter.FilterItemStack;
 import com.simibubi.create.content.logistics.stockTicker.StockKeeperRequestMenu;
 import com.simibubi.create.content.logistics.stockTicker.StockKeeperRequestScreen;
 import dev.emi.emi.api.recipe.EmiPlayerInventory;
@@ -42,7 +44,6 @@ public class StockRequestHandler implements StandardRecipeHandler<StockKeeperReq
         return true;
     }
 
-    // TODO 收藏合成表无效
     @Override
     public boolean canCraft(EmiRecipe recipe, EmiCraftContext<StockKeeperRequestMenu> context) {
         AbstractContainerScreen<StockKeeperRequestMenu> abstractContainerScreen = context.getScreen();
@@ -86,7 +87,7 @@ public class StockRequestHandler implements StandardRecipeHandler<StockKeeperReq
                 }else if(findSome && action != null)
                     action.accept(stack, amount,null);
             }
-            for(List<BigItemStack> items : screen.displayedItems){
+            for(List<BigItemStack> items : getItemSource(screen)){
                 Optional<BigItemStack> optional = items.stream().filter(bigItemStack -> bigItemStack.stack.is(stack.getItemStack().getItem())).findFirst();
                 if(optional.isPresent()){
                     BigItemStack bigItemStack = optional.get();
@@ -106,6 +107,10 @@ public class StockRequestHandler implements StandardRecipeHandler<StockKeeperReq
             }
         }
         return requiredAmount == Integer.MAX_VALUE;
+    }
+
+    public static @NotNull List<List<BigItemStack>> getItemSource(StockKeeperRequestScreen screen){
+        return screen.currentItemSource == null ? new ArrayList<>() : screen.currentItemSource;
     }
 
     protected boolean enoughIngredients(EmiRecipe recipe, StockKeeperRequestScreen screen, int craftTimes, EmiPlayerInventory playerInventory, @Nullable TriConsumer<EmiStack,Long,@Nullable BigItemStack> action){
@@ -140,16 +145,28 @@ public class StockRequestHandler implements StandardRecipeHandler<StockKeeperReq
     }
 
     protected void sendRequest(@NotNull StockKeeperRequestScreen screen,@Nullable String address){
-        // TODO 地址可以通过合成主副产物结合仓库分类判断发送地址
-        if(!EMIForCreateStockConfig.sendIt())
-            return;
+        String oldAddress = screen.addressBox.getValue();
         if(address != null)
             screen.addressBox.setValue(address);
+        if(!EMIForCreateStockConfig.sendIt())
+            return;
         ((StockKeeperRequestScreenMixin)screen).emiforcreatestock$sendIt();
+        screen.addressBox.setValue(oldAddress);
     }
 
     protected void moveItems(EmiRecipe recipe,@NotNull StockKeeperRequestScreen screen,@NotNull List<BigItemStack> stacks){
         clearRecipe(screen);
+        stacks.stream()
+                .filter(stack -> recipe.getOutputs().stream().anyMatch(
+                        output -> ItemStack.isSameItem(output.getItemStack(),stack.stack))
+                )
+                .forEach(
+                        stack -> screen.itemsToOrder.add(stack)
+                );
+        if(!screen.itemsToOrder.isEmpty()) {
+            stacks.removeAll(screen.itemsToOrder);
+            sendRequest(screen, null);
+        }
         for(BigItemStack stack : stacks){
             if(screen.itemsToOrder.size() < 9)
                 screen.itemsToOrder.add(stack);
@@ -158,8 +175,9 @@ public class StockRequestHandler implements StandardRecipeHandler<StockKeeperReq
         }
         sendRequest(screen,getAddress(recipe,screen));
         if(!EMIForCreateStockConfig.sendIt()){
+            List<List<BigItemStack>> itemSource = getItemSource(screen);
             screen.itemsToOrder.forEach(stack -> {
-                for(List<BigItemStack> items : screen.displayedItems){
+                for(List<BigItemStack> items : itemSource){
                     items.stream().filter(bigItemStack -> bigItemStack.stack.is(stack.stack.getItem())).findFirst()
                             .ifPresent(bigItemStack -> bigItemStack.count -= stack.count);
                 }
@@ -170,8 +188,13 @@ public class StockRequestHandler implements StandardRecipeHandler<StockKeeperReq
     public @Nullable String getAddress(EmiRecipe recipe,StockKeeperRequestScreen screen){
         for(EmiStack output : recipe.getOutputs()){
             for (int ordinary = 0; ordinary < screen.categories.size(); ordinary++) {
-                if(screen.displayedItems.get(ordinary).stream().anyMatch(stack ->
-                    ItemStack.isSameItem(stack.stack,output.getItemStack())
+                if(getItemSource(screen).get(ordinary).stream().anyMatch(stack -> {
+                    if(stack.stack.getItem() instanceof FilterItem){
+                        FilterItemStack filter = FilterItemStack.of(stack.stack);
+                        return filter.test(screen.getMinecraft().level, output.getItemStack());
+                    }
+                    return false;
+                        }
                 )) {
                     return getAvailableAddress(((CategoryEntryMixin) screen.categories.get(ordinary)).getName());
                 }
@@ -192,7 +215,7 @@ public class StockRequestHandler implements StandardRecipeHandler<StockKeeperReq
 
     @Override
     public void render(EmiRecipe recipe, EmiCraftContext<StockKeeperRequestMenu> context, List<Widget> widgets, GuiGraphics draw) {
-        // TODO Overwrite this method and draw myself
+        // TODO Overwrite this method and draw myself (Don't want to do)
         if(context.getScreen() instanceof StockKeeperRequestScreen screen)
             StandardRecipeHandler.renderMissing(recipe,new PlayerInventoryAndStock(context.getInventory(),screen),widgets,draw);
         else StandardRecipeHandler.super.render(recipe,context,widgets,draw);

@@ -3,6 +3,7 @@ package com.emiforcreatestock.Mixin;
 import com.emiforcreatestock.StockRequestHandler;
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import com.llamalad7.mixinextras.sugar.Local;
+import com.llamalad7.mixinextras.sugar.ref.LocalRef;
 import com.simibubi.create.content.logistics.BigItemStack;
 import com.simibubi.create.content.logistics.stockTicker.StockKeeperRequestMenu;
 import com.simibubi.create.content.logistics.stockTicker.StockKeeperRequestScreen;
@@ -18,6 +19,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Mixin(StockKeeperRequestScreen.class)
@@ -35,9 +37,9 @@ public interface StockKeeperRequestScreenMixin{
         }
 
         @Inject(method = "renderBg",at = @At(value = "INVOKE", target = "Ljava/util/List;isEmpty()Z",ordinal = 3))
-        public void renderCraftCategories(GuiGraphics graphics, float partialTicks, int mouseX, int mouseY, CallbackInfo ci, @Local StockKeeperRequestScreen.CategoryEntry categoryEntry, @Local List<BigItemStack> category){
+        public void renderCraftCategories(GuiGraphics graphics, float partialTicks, int mouseX, int mouseY, CallbackInfo ci, @Local StockKeeperRequestScreen.CategoryEntry categoryEntry, @Local LocalRef<List<BigItemStack>> category){
             if(categoryEntry != null && StockRequestHandler.forAddress(((CategoryEntryMixin) categoryEntry).getName())) {
-                category.clear();
+                category.set(new ArrayList<>());
             }
         }
 

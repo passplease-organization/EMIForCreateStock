@@ -39,16 +39,10 @@ public abstract class StockTickerBlockEntityMixin extends StockCheckingBlockEnti
             if(!filter.isEmpty() && StockRequestHandler.forAddress(filter.getHoverName().getString())){
                 List<BigItemStack> inCategory = new ArrayList<>();
                 FilterItemStack filterItemStack = FilterItemStack.of(filter);
-                Iterator<BigItemStack> iterator = new ArrayList<>(stacks).iterator();
-
-                while(iterator.hasNext()) {
-                    BigItemStack bigStack = iterator.next();
-                    if (filterItemStack.test(this.level, bigStack.stack)) {
-                        inCategory.add(bigStack);
-                        iterator.remove();
-                    }
+                if(filterItemStack.isFilterItem()){
+                    inCategory.add(new BigItemStack(filterItemStack.item()));
+                    lastClientsideStockSnapshot.set(index, inCategory);
                 }
-                lastClientsideStockSnapshot.set(index, inCategory);
             }
         }
     }
