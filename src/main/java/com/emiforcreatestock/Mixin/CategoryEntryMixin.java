@@ -8,10 +8,4 @@ import org.spongepowered.asm.mixin.gen.Accessor;
 public interface CategoryEntryMixin {
     @Accessor("name")
     String getName();
-
-    @Accessor("y")
-    void setY(int y);
-
-    @Accessor("y")
-    int getY();
 }

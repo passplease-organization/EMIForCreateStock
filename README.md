@@ -9,6 +9,10 @@ At the early developing time, there is some problems, I will fix that in the lat
 - [ ] Internal missing slot draw.
 ## Planning
 - [x] Allow set different package address: add categories (name starts with "#") as add a normal category. When you request a recipe which output is filtered in one category, the address box will be automatically filled with category name ("#" be deleted)
-- [ ] Different package address depending on recipe type such as iron ore send to furnace automatically.
+- [x] Different package address depending on recipe type such as iron ore send to furnace automatically.
 ## License
 [MIT_License](https://mit-license.org/)
+## What it could do
+- Request recipe ingredient from EMI, including recipe tree or craft button. This will search in stock looking for lost items.
+- Send items automatically (could turn off in config)
+- Copy and set stock filter config by using clipboard (just for newly placed stock, and with no network setting).

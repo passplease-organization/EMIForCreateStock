@@ -73,36 +73,54 @@ public class StockRequestHandler implements StandardRecipeHandler<StockKeeperReq
         return StandardRecipeHandler.super.craft(recipe, context);
     }
 
+    protected boolean searchOutput(int requiredAmount,EmiPlayerInventory playerInventory,StockKeeperRequestScreen screen,EmiIngredient ingredient,@Nullable TriConsumer<EmiStack,Long,@Nullable BigItemStack> action,boolean findSome){
+        if(ForMoreParameters.playerNeedCount != ForMoreParameters.playerNeedCountDefault){
+            for(EmiStack stack : ingredient.getEmiStacks()){
+                if(searchSingleStack(requiredAmount, playerInventory, screen, action, findSome, stack, ForMoreParameters.playerNeedCount))
+                    return true;
+            }
+        }
+        return false;
+    }
+
     protected boolean enoughIngredients(int requiredAmount,EmiPlayerInventory playerInventory,StockKeeperRequestScreen screen,EmiIngredient ingredient,@Nullable TriConsumer<EmiStack,Long,@Nullable BigItemStack> action,boolean findSome){
         if(ingredient.isEmpty())
             return true;
         for (EmiStack stack : ingredient.getEmiStacks()) {
             long amount = ingredient.getAmount() * requiredAmount;
-            if (requiredAmount < Integer.MAX_VALUE && playerInventory.inventory.containsKey(stack)) {
-                amount -= playerInventory.inventory.get(stack).getAmount();
-                if (amount <= 0) {
-                    if(action != null)
-                        action.accept(stack, amount,null);
-                    return true;
-                }else if(findSome && action != null)
+            return searchSingleStack(requiredAmount, playerInventory, screen, action, findSome, stack, amount);
+        }
+        return requiredAmount == Integer.MAX_VALUE;
+    }
+
+    protected boolean searchSingleStack(int requiredAmount, EmiPlayerInventory playerInventory, StockKeeperRequestScreen screen, @Nullable TriConsumer<EmiStack, Long, @Nullable BigItemStack> action, boolean findSome, EmiStack stack, long amount) {
+        if (requiredAmount < Integer.MAX_VALUE && playerInventory.inventory.containsKey(stack)) {
+            long playerCount = playerInventory.inventory.get(stack).getAmount();
+            if (amount <= playerCount) {
+                if(action != null)
                     action.accept(stack, amount,null);
+                return true;
+            }else {
+                amount -= playerCount;
+                if (findSome && action != null)
+                    action.accept(stack, playerCount, null);
             }
-            for(List<BigItemStack> items : getItemSource(screen)){
-                Optional<BigItemStack> optional = items.stream().filter(bigItemStack -> bigItemStack.stack.is(stack.getItemStack().getItem())).findFirst();
-                if(optional.isPresent()){
-                    BigItemStack bigItemStack = optional.get();
-                    if(bigItemStack.count >= amount){
-                        if(action != null)
-                            action.accept(stack, amount,bigItemStack);
-                        return true;
-                    }else if(requiredAmount == Integer.MAX_VALUE){
-                        if(action != null)// Max extract 9 * 64
-                            action.accept(stack, Math.min(bigItemStack.stack.getMaxStackSize() * 9L,amount),bigItemStack);
-                    }else {// No duplicate items in different List
-                        if(findSome && action != null)
-                            action.accept(stack, (long) bigItemStack.count,bigItemStack);
-                        break;
-                    }
+        }
+        for(List<BigItemStack> items : getItemSource(screen)){
+            Optional<BigItemStack> optional = items.stream().filter(bigItemStack -> bigItemStack.stack.is(stack.getItemStack().getItem())).findFirst();
+            if(optional.isPresent()){
+                BigItemStack bigItemStack = optional.get();
+                if(bigItemStack.count >= amount){
+                    if(action != null)
+                        action.accept(stack, amount,bigItemStack);
+                    return true;
+                }else if(requiredAmount == Integer.MAX_VALUE){
+                    if(action != null)// Max extract 9 * 64
+                        action.accept(stack, Math.min(bigItemStack.stack.getMaxStackSize() * 9L,amount),bigItemStack);
+                }else {// No duplicate items in different List
+                    if(findSome && action != null)
+                        action.accept(stack, (long) bigItemStack.count,bigItemStack);
+                    break;
                 }
             }
         }
@@ -116,9 +134,9 @@ public class StockRequestHandler implements StandardRecipeHandler<StockKeeperReq
     protected boolean enoughIngredients(EmiRecipe recipe, StockKeeperRequestScreen screen, int craftTimes, EmiPlayerInventory playerInventory, @Nullable TriConsumer<EmiStack,Long,@Nullable BigItemStack> action){
         Map<EmiIngredient,Integer> foundIngredients = new HashMap<>();
         List<EmiStack> outputs = recipe.getOutputs();
-        if(!outputs.isEmpty() && enoughIngredients(craftTimes,playerInventory,screen,outputs.getFirst(),(emiStack, amount, bigItemStack) -> {
+        if(!outputs.isEmpty() && searchOutput(craftTimes,playerInventory,screen,outputs.getFirst(),(emiStack, amount, bigItemStack) -> {
             if(amount >= 0) {
-                foundIngredients.put(outputs.getFirst(), Math.toIntExact(amount));
+                foundIngredients.compute(outputs.getFirst(),(ingredient,count) -> count == null ? Math.toIntExact(amount) : count + Math.toIntExact(amount));
                 if(action != null)
                     action.accept(emiStack, amount,bigItemStack);
             }
@@ -194,8 +212,7 @@ public class StockRequestHandler implements StandardRecipeHandler<StockKeeperReq
                         return filter.test(screen.getMinecraft().level, output.getItemStack());
                     }
                     return false;
-                        }
-                )) {
+                })) {
                     return getAvailableAddress(((CategoryEntryMixin) screen.categories.get(ordinary)).getName());
                 }
             }
