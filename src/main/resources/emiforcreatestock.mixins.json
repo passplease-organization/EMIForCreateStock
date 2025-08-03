@@ -4,12 +4,14 @@
   "package": "com.emiforcreatestock.Mixin",
   "compatibilityLevel": "JAVA_16",
   "mixins": [
+    "EmiScreenManagerMixin",
+    "StockTickerBlockEntityMixin$StockTickerBlockEntityMixin_"
   ],
   "client": [
     "CategoryEntryMixin",
+    "StockTickerBlockEntityMixin",
     "StockKeeperRequestScreenMixin",
-    "StockKeeperRequestScreenMixin$StockKeeperRequestScreenMixin_",
-    "StockTickerBlockEntityMixin"
+    "StockKeeperRequestScreenMixin$StockKeeperRequestScreenMixin_"
   ],
   "injectors": {
     "defaultRequire": 1

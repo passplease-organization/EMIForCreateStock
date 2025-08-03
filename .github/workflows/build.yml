@@ -26,15 +26,10 @@ jobs:
       - name: Build with Gradle
         run: gradle build
 
-      - name: Create timestamp
-        id: create_timestamp
-        run: echo "timestamp=$(date '+%Y-%m-%d')" >> $GITHUB_OUTPUT
-        shell: bash
-
       - uses: Kir-Antipov/mc-publish@v3.3
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          github-tag: 1.21.1-NeoForge-${{ steps.create_timestamp.outputs.timestamp }}
+          github-tag: 1.21.1-NeoForge
           github-draft: false
           github-prerelease: true
 
