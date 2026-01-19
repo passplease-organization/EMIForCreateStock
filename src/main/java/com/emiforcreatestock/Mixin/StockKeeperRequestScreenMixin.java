@@ -7,7 +7,6 @@ import com.llamalad7.mixinextras.sugar.ref.LocalRef;
 import com.simibubi.create.content.logistics.BigItemStack;
 import com.simibubi.create.content.logistics.stockTicker.StockKeeperRequestMenu;
 import com.simibubi.create.content.logistics.stockTicker.StockKeeperRequestScreen;
-import com.simibubi.create.foundation.gui.ScreenWithStencils;
 import com.simibubi.create.foundation.gui.menu.AbstractSimiContainerScreen;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
@@ -28,7 +27,7 @@ public interface StockKeeperRequestScreenMixin{
     void emiforcreatestock$sendIt();
 
     @Mixin(StockKeeperRequestScreen.class)
-    abstract class StockKeeperRequestScreenMixin_ extends AbstractSimiContainerScreen<StockKeeperRequestMenu> implements ScreenWithStencils {
+    abstract class StockKeeperRequestScreenMixin_ extends AbstractSimiContainerScreen<StockKeeperRequestMenu> {
 
         @Shadow public List<StockKeeperRequestScreen.CategoryEntry> categories;
 

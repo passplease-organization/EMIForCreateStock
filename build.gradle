@@ -90,15 +90,15 @@ dependencies {
     implementation "net.neoforged:neoforge:${neo_version}"
 
     jarJar(implementation("com.tterrag.registrate:Registrate:${registrate_version}"))
-    jarJar("net.createmod.ponder:Ponder-NeoForge-${minecraft_version}:${ponder_version}")
+    jarJar("net.createmod.ponder:ponder-neoforge:${ponder_version}+mc${minecraft_version}")
     if (ponderInWorkspace) {
         implementation(project(":ponder:Common"))
         implementation(project(":ponder:NeoForge"))
     } else {
-        implementation("net.createmod.ponder:Ponder-NeoForge-${minecraft_version}:${ponder_version}")
+        implementation("net.createmod.ponder:ponder-neoforge:${ponder_version}+mc${minecraft_version}")
     }
 
-    implementation "curse.maven:create-328085:6641610"
+    implementation "curse.maven:create-328085:7408951"
     implementation "curse.maven:emi-580555:6420931"
     runtimeOnly("curse.maven:toms-storage-378609:6621374")
 }
