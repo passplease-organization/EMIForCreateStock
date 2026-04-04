@@ -5,6 +5,7 @@ import com.emiforcreatestock.StockRequestHandler;
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import com.llamalad7.mixinextras.sugar.Local;
 import com.simibubi.create.api.equipment.goggles.IHaveHoveringInformation;
+import com.simibubi.create.compat.computercraft.ComputerCraftProxy;
 import com.simibubi.create.content.logistics.BigItemStack;
 import com.simibubi.create.content.logistics.filter.FilterItemStack;
 import com.simibubi.create.content.logistics.stockTicker.StockCheckingBlockEntity;
@@ -70,6 +71,7 @@ public interface StockTickerBlockEntityMixin {
         public void addBehaviours(List<BlockEntityBehaviour> behaviours) {
             super.addBehaviours(behaviours);
             behaviours.add(new StockCloneBehaviour(this));
+			behaviours.add(((StockTickerBlockEntity) (Object) this).computerBehaviour = ComputerCraftProxy.behaviour((StockTickerBlockEntity) (Object) this));
         }
     }
 }
