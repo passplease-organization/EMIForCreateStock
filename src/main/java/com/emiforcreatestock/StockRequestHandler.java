@@ -63,7 +63,7 @@ public class StockRequestHandler implements StandardRecipeHandler<StockKeeperReq
                     return;
                 Optional<BigItemStack> optional = stacks.stream().filter(bigItemStack -> ItemStack.isSameItemSameComponents(bigItemStack.stack, stack.stack)).findFirst();
                 if(optional.isPresent()){
-                    optional.get().count = Math.toIntExact(amount);
+                    optional.get().count += Math.toIntExact(amount);
                 }else stacks.add(new BigItemStack(stack.stack,Math.toIntExact(amount)));
             }))
                 return false;
@@ -73,87 +73,63 @@ public class StockRequestHandler implements StandardRecipeHandler<StockKeeperReq
         return StandardRecipeHandler.super.craft(recipe, context);
     }
 
-    protected boolean searchOutput(int requiredAmount,EmiPlayerInventory playerInventory,StockKeeperRequestScreen screen,EmiIngredient ingredient,@Nullable TriConsumer<EmiStack,Long,@Nullable BigItemStack> action,boolean findSome){
-        if(ForMoreParameters.playerNeedCount != ForMoreParameters.playerNeedCountDefault){
-            for(EmiStack stack : ingredient.getEmiStacks()){
-                if(searchSingleStack(requiredAmount, playerInventory, screen, action, findSome, stack, ForMoreParameters.playerNeedCount))
-                    return true;
-            }
-        }
-        return false;
-    }
-
-    protected boolean enoughIngredients(int requiredAmount,EmiPlayerInventory playerInventory,StockKeeperRequestScreen screen,EmiIngredient ingredient,@Nullable TriConsumer<EmiStack,Long,@Nullable BigItemStack> action,boolean findSome){
-        if(ingredient.isEmpty())
-            return true;
-        for (EmiStack stack : ingredient.getEmiStacks()) {
-            long amount = ingredient.getAmount() * requiredAmount;
-            return searchSingleStack(requiredAmount, playerInventory, screen, action, findSome, stack, amount);
-        }
-        return requiredAmount == Integer.MAX_VALUE;
-    }
-
-    protected boolean searchSingleStack(int requiredAmount, EmiPlayerInventory playerInventory, StockKeeperRequestScreen screen, @Nullable TriConsumer<EmiStack, Long, @Nullable BigItemStack> action, boolean findSome, EmiStack stack, long amount) {
+    protected int searchSingleStack(int requiredAmount, EmiPlayerInventory playerInventory, StockKeeperRequestScreen screen, @Nullable TriConsumer<EmiStack, Long, @Nullable BigItemStack> action, EmiStack stack) {
+        long amount = 0;
         if (requiredAmount < Integer.MAX_VALUE && playerInventory.inventory.containsKey(stack)) {
-            long playerCount = playerInventory.inventory.get(stack).getAmount();
-            if (amount <= playerCount) {
-                if(action != null)
-                    action.accept(stack, amount,null);
-                return true;
-            }else {
-                amount -= playerCount;
-                if (findSome && action != null)
-                    action.accept(stack, playerCount, null);
-            }
+            amount = playerInventory.inventory.get(stack).getAmount();
+            if(amount >= requiredAmount)
+                return requiredAmount;
         }
         for(List<BigItemStack> items : getItemSource(screen)){
-            Optional<BigItemStack> optional = items.stream().filter(bigItemStack -> bigItemStack.stack.is(stack.getItemStack().getItem())).findFirst();
+            Optional<BigItemStack> optional = items.stream().filter(bigItemStack -> ItemStack.isSameItemSameComponents(bigItemStack.stack,stack.getItemStack())).findFirst();
             if(optional.isPresent()){
                 BigItemStack bigItemStack = optional.get();
-                if(bigItemStack.count >= amount){
-                    if(action != null)
-                        action.accept(stack, amount,bigItemStack);
-                    return true;
-                }else if(requiredAmount == Integer.MAX_VALUE){
+                if(requiredAmount == Integer.MAX_VALUE){
+                    amount = Math.min(bigItemStack.stack.getMaxStackSize() * 9L,amount);
                     if(action != null)// Max extract 9 * 64
-                        action.accept(stack, Math.min(bigItemStack.stack.getMaxStackSize() * 9L,amount),bigItemStack);
-                }else {// No duplicate items in different List
-                    if(findSome && action != null)
-                        action.accept(stack, (long) bigItemStack.count,bigItemStack);
-                    break;
+                        action.accept(stack, amount,bigItemStack);
+                }else {
+                    if(bigItemStack.count >= requiredAmount - amount){
+                        if(action != null)
+                            action.accept(stack,requiredAmount - amount,bigItemStack);
+                        amount = requiredAmount;
+                    }else{// No duplicate items in different List
+                        if(action != null)
+                            action.accept(stack, (long) bigItemStack.count,bigItemStack);
+                        amount += bigItemStack.count;
+                    }
                 }
             }
         }
-        return requiredAmount == Integer.MAX_VALUE;
+        return (int)amount;
     }
 
     public static @NotNull List<List<BigItemStack>> getItemSource(StockKeeperRequestScreen screen){
         return screen.currentItemSource == null ? new ArrayList<>() : screen.currentItemSource;
     }
 
+    /**
+     * @param action how to record new stuff, by adding every one
+     * */
     protected boolean enoughIngredients(EmiRecipe recipe, StockKeeperRequestScreen screen, int craftTimes, EmiPlayerInventory playerInventory, @Nullable TriConsumer<EmiStack,Long,@Nullable BigItemStack> action){
-        Map<EmiIngredient,Integer> foundIngredients = new HashMap<>();
         List<EmiStack> outputs = recipe.getOutputs();
-        if(!outputs.isEmpty() && searchOutput(craftTimes,playerInventory,screen,outputs.getFirst(),(emiStack, amount, bigItemStack) -> {
-            if(amount >= 0) {
-                foundIngredients.compute(outputs.getFirst(),(ingredient,count) -> count == null ? Math.toIntExact(amount) : count + Math.toIntExact(amount));
-                if(action != null)
-                    action.accept(emiStack, amount,bigItemStack);
-            }
-        },true))
-            return true;
+        if(!outputs.isEmpty()) {
+            EmiStack o = outputs.getFirst();
+            int count = Math.toIntExact(searchSingleStack(craftTimes * (int) o.getAmount(), playerInventory, screen, action, o) / o.getAmount());
+            if(craftTimes >= count) {
+                craftTimes -= count;
+            }else return true;
+        }
         for (EmiIngredient ingredient : recipe.getInputs()) {
-            Optional<Map.Entry<EmiIngredient, Integer>> foundIngredient = foundIngredients.entrySet().stream()
-                    .filter(entry -> EmiIngredient.areEqual(ingredient, entry.getKey()))
-                    .findFirst();
             int count = Math.toIntExact(ingredient.getAmount() * craftTimes);
-            boolean present = foundIngredient.isPresent();
-            if(present) {
-                count += foundIngredient.get().getValue();
-            }
-            if(!enoughIngredients(count,playerInventory,screen,ingredient,action,false))
+            if(ingredient.getEmiStacks().stream().noneMatch(stack -> {
+                if(searchSingleStack(count,playerInventory,screen,null,stack) >= count){
+                    searchSingleStack(count, playerInventory, screen, action, stack);
+                    return true;
+                }
                 return false;
-            foundIngredients.put(present ? foundIngredient.get().getKey() : ingredient,count);
+            }))
+                return false;
         }
         return true;
     }
@@ -258,9 +234,15 @@ public class StockRequestHandler implements StandardRecipeHandler<StockKeeperReq
 
         @Override
         public List<Boolean> getCraftAvailability(EmiRecipe recipe) {// Main function
-            List<Boolean> list = new ArrayList<>();
-            recipe.getInputs().forEach(ingredient -> list.add(StockRequestHandler.this.enoughIngredients(1,playerInventory,screen,ingredient,null,false)));
-            return list;
+            Map<EmiStack,Integer> stacks = new HashMap<>();
+            return recipe.getInputs().stream().map(emiIngredient -> {
+                return emiIngredient.getEmiStacks().stream().anyMatch(stack -> searchSingleStack(stacks.getOrDefault(stack,1),playerInventory,screen,
+                        (emiStack, amount, bigItemStack) -> {
+                    if(amount <= 0 || stack == null)
+                        return;
+                    stacks.compute(emiStack,(k,v) -> v == null ? 1 : v + 1);
+                },stack) >= 1);
+            }).toList();
         }
 
         @Override
@@ -275,10 +257,15 @@ public class StockRequestHandler implements StandardRecipeHandler<StockKeeperReq
 
         @Override
         public boolean canCraft(EmiRecipe recipe, long amount) {
-            for(EmiIngredient ingredient : recipe.getInputs())
-                if(!StockRequestHandler.this.enoughIngredients((int)amount,playerInventory,screen,ingredient,null,false))
-                    return false;
-            return true;
+            Map<EmiStack,Integer> stacks = new HashMap<>();
+            return recipe.getInputs().stream().allMatch(emiIngredient -> {
+                return emiIngredient.getEmiStacks().stream().anyMatch(stack -> searchSingleStack(stacks.getOrDefault(stack, (int) amount), playerInventory, screen,
+                        (emiStack, aLong, bigItemStack) -> {
+                            if (aLong <= 0 || stack == null)
+                                return;
+                            stacks.compute(emiStack, (k, v) -> v == null ? (int) amount : v + (int) amount);
+                        }, stack) >= 1);
+            });
         }
 
         @Override
