@@ -5,6 +5,7 @@ import com.emiforcreatestock.Mixin.StockKeeperRequestScreenMixin;
 import com.simibubi.create.content.logistics.BigItemStack;
 import com.simibubi.create.content.logistics.filter.FilterItem;
 import com.simibubi.create.content.logistics.filter.FilterItemStack;
+import com.simibubi.create.content.logistics.stockTicker.CraftableBigItemStack;
 import com.simibubi.create.content.logistics.stockTicker.StockKeeperRequestMenu;
 import com.simibubi.create.content.logistics.stockTicker.StockKeeperRequestScreen;
 import dev.emi.emi.api.recipe.EmiPlayerInventory;
@@ -19,6 +20,8 @@ import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.crafting.CraftingRecipe;
+import net.minecraft.world.item.crafting.Recipe;
 import org.apache.logging.log4j.util.TriConsumer;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -58,6 +61,17 @@ public class StockRequestHandler implements StandardRecipeHandler<StockKeeperReq
         AbstractContainerScreen<StockKeeperRequestMenu> abstractContainerScreen = context.getScreen();
         if(abstractContainerScreen instanceof StockKeeperRequestScreen screen){
             List<BigItemStack> stacks = new ArrayList<>();
+            if(recipe.getBackingRecipe() != null && recipe.getBackingRecipe().value() instanceof CraftingRecipe craftingRecipe){
+                craftingRecipe = (CraftingRecipe) recipe.getBackingRecipe().value();
+                EmiStack o = recipe.getOutputs().getFirst();
+                int count = (int) o.getAmount() * (int)context.getAmount();
+                count -= searchSingleStack(count,context.getInventory(),screen,null,o);
+                if(count > 0){
+                    CraftableBigItemStack cbis = new CraftableBigItemStack(o.getItemStack(), craftingRecipe);
+                    screen.recipesToOrder.add(cbis);
+                    screen.requestCraftable(cbis,count);
+                }
+            }
             if(!enoughIngredients(recipe,screen, context.getAmount(), context.getInventory(),(ignore,amount,stack) -> {
                 if(amount <= 0 || stack == null)
                     return;
@@ -85,7 +99,7 @@ public class StockRequestHandler implements StandardRecipeHandler<StockKeeperReq
             if(optional.isPresent()){
                 BigItemStack bigItemStack = optional.get();
                 if(requiredAmount == Integer.MAX_VALUE){
-                    amount = Math.min(bigItemStack.stack.getMaxStackSize() * 9L,amount);
+                    amount = Math.min(bigItemStack.stack.getMaxStackSize() * 9L, bigItemStack.count);
                     if(action != null)// Max extract 9 * 64
                         action.accept(stack, amount,bigItemStack);
                 }else {
@@ -116,14 +130,15 @@ public class StockRequestHandler implements StandardRecipeHandler<StockKeeperReq
         if(!outputs.isEmpty()) {
             EmiStack o = outputs.getFirst();
             int count = Math.toIntExact(searchSingleStack(craftTimes * (int) o.getAmount(), playerInventory, screen, action, o) / o.getAmount());
-            if(craftTimes >= count) {
-                craftTimes -= count;
-            }else return true;
+            if(craftTimes < count) {
+                return true;
+            }
+            craftTimes -= count;
         }
         for (EmiIngredient ingredient : recipe.getInputs()) {
             int count = Math.toIntExact(ingredient.getAmount() * craftTimes);
             if(ingredient.getEmiStacks().stream().noneMatch(stack -> {
-                if(searchSingleStack(count,playerInventory,screen,null,stack) >= count){
+                if(count == Integer.MAX_VALUE || searchSingleStack(count,playerInventory,screen,null,stack) >= count){
                     searchSingleStack(count, playerInventory, screen, action, stack);
                     return true;
                 }
