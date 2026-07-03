@@ -31,7 +31,7 @@ import java.util.function.Predicate;
 
 public class StockRequestHandler implements StandardRecipeHandler<StockKeeperRequestMenu> {
     protected static final List<Slot> CRAFTING_SLOTS = List.of();
-    protected static final int MAX_DEPTH = 10;
+    protected static final int MAX_DEPTH = 3;
     protected static final ThreadLocal<Integer> DEPTH = ThreadLocal.withInitial(() -> 0);
 
     @Override
