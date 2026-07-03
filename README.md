@@ -16,6 +16,6 @@ This mod is developed for my use, and I just make it public if there are others 
 ## License
 [MIT_License](https://mit-license.org/)
 ## What it could do
-- Request recipe ingredient from EMI, including recipe tree or craft button. This will search in stock looking for lost items.
+- Request recipe ingredient from EMI, including recipe tree or craft button. This will search in stock looking for lost items(only 1.0.6, after that I give up it due to unbelievable lagging).
 - Send items automatically (could turn off in config)
 - Copy and set stock filter config by using clipboard (just for newly placed stock, and with no network setting).

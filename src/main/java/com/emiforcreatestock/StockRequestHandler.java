@@ -31,8 +31,8 @@ import java.util.function.Predicate;
 
 public class StockRequestHandler implements StandardRecipeHandler<StockKeeperRequestMenu> {
     protected static final List<Slot> CRAFTING_SLOTS = List.of();
-    protected static final int MAX_DEPTH = 3;
-    protected static final ThreadLocal<Integer> DEPTH = ThreadLocal.withInitial(() -> 0);
+//    protected static final int MAX_DEPTH = 3;
+//    protected static final ThreadLocal<Integer> DEPTH = ThreadLocal.withInitial(() -> 0);
 
     @Override
     public List<Slot> getInputSources(StockKeeperRequestMenu menu) {
@@ -164,19 +164,19 @@ public class StockRequestHandler implements StandardRecipeHandler<StockKeeperReq
                 }
                 return false;
             })) {
-                if(!ForMoreParameters.playerClick || DEPTH.get() >= MAX_DEPTH)
-                    return false;
-                DEPTH.set(DEPTH.get() + 1);
-                EmiRecipe newRecipe = EmiUtil.getPreferredRecipe(ingredient, playerInventory, true);
-                if(newRecipe == null || newRecipe.getOutputs().size() >= 50) {
-                    // newRecipe.getOutputs().size() >= 50 is for refuse bad recipes, those come from unknown given by EMI
-                    DEPTH.set(DEPTH.get() - 1);
-                    return false;
-                }
-                int outputCount = EmiUtil.getOutputCount(newRecipe,ingredient);
-                boolean back = outputCount > 0 && enoughIngredients(newRecipe, screen,requiredAmount / outputCount + Math.min(requiredAmount % outputCount,1),playerInventory, action);
-                DEPTH.set(DEPTH.get() - 1);
-                if(!back)
+//                if(!ForMoreParameters.playerClick || DEPTH.get() >= MAX_DEPTH)
+//                    return false;
+//                DEPTH.set(DEPTH.get() + 1);
+//                EmiRecipe newRecipe = EmiUtil.getPreferredRecipe(ingredient, playerInventory, true);
+//                if(newRecipe == null || newRecipe.getOutputs().size() >= 50) {
+//                    // newRecipe.getOutputs().size() >= 50 is for refuse bad recipes, those come from unknown given by EMI
+//                    DEPTH.set(DEPTH.get() - 1);
+//                    return false;
+//                }
+//                int outputCount = EmiUtil.getOutputCount(newRecipe,ingredient);
+//                boolean back = outputCount > 0 && enoughIngredients(newRecipe, screen,requiredAmount / outputCount + Math.min(requiredAmount % outputCount,1),playerInventory, action);
+//                DEPTH.set(DEPTH.get() - 1);
+//                if(!back)
                     return false;
             }
         }

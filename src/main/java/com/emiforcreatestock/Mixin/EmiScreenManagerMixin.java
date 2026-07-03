@@ -18,17 +18,18 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-@Mixin(EmiScreenManager.class)
+@Deprecated
+//@Mixin(EmiScreenManager.class)
 public class EmiScreenManagerMixin {
-    @ForMoreParameter(usingClass = StockRequestHandler.class,reason = "Watch if the craft method triggered by player")
-    @Inject(method = "craftInteraction",at = @At(value = "HEAD"))
-    private static void setRecipe(EmiIngredient ingredient, Supplier<EmiRecipe> contextSupplier, EmiStackInteraction stack, Function<EmiBind, Boolean> function, CallbackInfoReturnable<Boolean> cir) {
-        ForMoreParameters.playerClick = true;
-    }
-
-    @ForMoreParameter(usingClass = StockRequestHandler.class)
-    @Inject(method = "craftInteraction",at = @At(value = "RETURN"))
-    private static void clearData(EmiIngredient ingredient, Supplier<EmiRecipe> contextSupplier, EmiStackInteraction stack, Function<EmiBind, Boolean> function, CallbackInfoReturnable<Boolean> cir) {
-        ForMoreParameters.playerClick = false;
-    }
+//    @ForMoreParameter(usingClass = StockRequestHandler.class,reason = "Watch if the craft method triggered by player")
+//    @Inject(method = "craftInteraction",at = @At(value = "HEAD"))
+//    private static void setRecipe(EmiIngredient ingredient, Supplier<EmiRecipe> contextSupplier, EmiStackInteraction stack, Function<EmiBind, Boolean> function, CallbackInfoReturnable<Boolean> cir) {
+//        ForMoreParameters.playerClick = true;
+//    }
+//
+//    @ForMoreParameter(usingClass = StockRequestHandler.class)
+//    @Inject(method = "craftInteraction",at = @At(value = "RETURN"))
+//    private static void clearData(EmiIngredient ingredient, Supplier<EmiRecipe> contextSupplier, EmiStackInteraction stack, Function<EmiBind, Boolean> function, CallbackInfoReturnable<Boolean> cir) {
+//        ForMoreParameters.playerClick = false;
+//    }
 }
