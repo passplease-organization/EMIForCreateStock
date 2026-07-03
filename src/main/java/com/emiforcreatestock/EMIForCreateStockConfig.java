@@ -12,10 +12,14 @@ public class EMIForCreateStockConfig {
 
     private final ModConfigSpec.BooleanValue SEND_IT;
 
+    private final ModConfigSpec.BooleanValue CRAFTABLE_RECIPE;
+
     private EMIForCreateStockConfig(ModConfigSpec.Builder builder) {
         SEND_IT = builder.comment("Send package automatically when you click transfer craft recipe")
                 .translation("auto_send_package")
                 .define("SendPackage", true);
+        CRAFTABLE_RECIPE = builder.comment("Craftable recipe send by Create's crafting package format")
+                .define("SendByCraftableRecipe", true);
     }
 
     public static void register(ModContainer modContainer){
@@ -33,5 +37,9 @@ public class EMIForCreateStockConfig {
 
     public static boolean sendIt(){
         return INSTANCE.SEND_IT.get();
+    }
+
+    public static boolean craftableRecipe(){
+        return INSTANCE.CRAFTABLE_RECIPE.get();
     }
 }

@@ -4,12 +4,15 @@ This is a mod making you craft in Create Stock easier with Fill Recipe support. 
 ## Others
 This mod is developed for my use, and I just make it public if there are others need. After I finish all function, it will nearly not update. And I have a little time for coding, so even now, it may not update very fast.
 ## Problems
-At the early developing time, there is some problems, I will fix that in the later version.
-- [x] Duplicate count player inventory between different craft slot.
-- [ ] Internal missing slot draw.
-## Planning
+- [x] Duplicate count some items in stock(using two or more recipes and contains the same items), no plan to fix it due to little influence to player and I suppose there should be a lot of stuff in the stock
+- [ ] Internal missing slot draw, no plan to fix it due to my lazy...
+## Features
 - [x] Allow set different package address: add categories (name starts with "#") as add a normal category. When you request a recipe which output is filtered in one category, the address box will be automatically filled with category name ("#" be deleted)
 - [x] Different package address depending on recipe type such as iron ore send to furnace automatically.
+- [x] All recipes requested will be handled just like recipe tree, automatically request ingredients to craft output.
+## Configs
+- `SendPackage`: Send package automatically when you click transfer craft recipe, default true
+- `SendByCraftableRecipe`: Craftable recipe send by Create's crafting package format, default true
 ## License
 [MIT_License](https://mit-license.org/)
 ## What it could do
