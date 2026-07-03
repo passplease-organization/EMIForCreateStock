@@ -20,15 +20,15 @@ import java.util.function.Supplier;
 
 @Mixin(EmiScreenManager.class)
 public class EmiScreenManagerMixin {
-    @ForMoreParameter(usingClass = StockRequestHandler.class,reason = "OrElse EMI gives bad recipe amount, and causes request count wrong (Problems caused by inability to divide evenly)")
-    @Inject(method = "craftInteraction",at = @At(value = "INVOKE", target = "Ldev/emi/emi/runtime/EmiFavorite$Synthetic;getRecipe()Ldev/emi/emi/api/recipe/EmiRecipe;"))
-    private static void setRecipe(EmiIngredient ingredient, Supplier<EmiRecipe> contextSupplier, EmiStackInteraction stack, Function<EmiBind, Boolean> function, CallbackInfoReturnable<Boolean> cir, @Local EmiFavorite.Synthetic syn) {
-        ForMoreParameters.playerNeedCount = syn.total;
+    @ForMoreParameter(usingClass = StockRequestHandler.class,reason = "Watch if the craft method triggered by player")
+    @Inject(method = "craftInteraction",at = @At(value = "HEAD"))
+    private static void setRecipe(EmiIngredient ingredient, Supplier<EmiRecipe> contextSupplier, EmiStackInteraction stack, Function<EmiBind, Boolean> function, CallbackInfoReturnable<Boolean> cir) {
+        ForMoreParameters.playerClick = true;
     }
 
     @ForMoreParameter(usingClass = StockRequestHandler.class)
     @Inject(method = "craftInteraction",at = @At(value = "RETURN"))
     private static void clearData(EmiIngredient ingredient, Supplier<EmiRecipe> contextSupplier, EmiStackInteraction stack, Function<EmiBind, Boolean> function, CallbackInfoReturnable<Boolean> cir) {
-        ForMoreParameters.playerNeedCount = ForMoreParameters.playerNeedCountDefault;
+        ForMoreParameters.playerClick = false;
     }
 }

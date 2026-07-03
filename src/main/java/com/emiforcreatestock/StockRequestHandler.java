@@ -31,7 +31,7 @@ import java.util.function.Predicate;
 
 public class StockRequestHandler implements StandardRecipeHandler<StockKeeperRequestMenu> {
     protected static final List<Slot> CRAFTING_SLOTS = List.of();
-    protected static final int MAX_DEPTH = 3;
+    protected static final int MAX_DEPTH = 10;
     protected static final ThreadLocal<Integer> DEPTH = ThreadLocal.withInitial(() -> 0);
 
     @Override
@@ -164,11 +164,12 @@ public class StockRequestHandler implements StandardRecipeHandler<StockKeeperReq
                 }
                 return false;
             })) {
-                if(DEPTH.get() >= MAX_DEPTH)
+                if(!ForMoreParameters.playerClick || DEPTH.get() >= MAX_DEPTH)
                     return false;
                 DEPTH.set(DEPTH.get() + 1);
                 EmiRecipe newRecipe = EmiUtil.getPreferredRecipe(ingredient, playerInventory, true);
-                if(newRecipe == null) {
+                if(newRecipe == null || newRecipe.getOutputs().size() >= 50) {
+                    // newRecipe.getOutputs().size() >= 50 is for refuse bad recipes, those come from unknown given by EMI
                     DEPTH.set(DEPTH.get() - 1);
                     return false;
                 }
