@@ -142,14 +142,16 @@ public class StockRequestHandler implements StandardRecipeHandler<StockKeeperReq
     protected boolean enoughIngredients(EmiRecipe recipe, StockKeeperRequestScreen screen, long craftTimes, EmiPlayerInventory playerInventory, @Nullable TriConsumer<EmiStack, Long, @Nullable BigItemStack> action){
         List<EmiStack> outputs = recipe.getOutputs();
         if(!outputs.isEmpty()) {
-            EmiStack o = outputs.getFirst();
-            // Compute required output items as long
-            long totalOutputNeeded = o.getAmount() * craftTimes;
-            long foundOutput = searchSingleStack(totalOutputNeeded, playerInventory, screen, action, o);
-            long satisfiedCrafts = foundOutput / o.getAmount();
-            if(craftTimes <= satisfiedCrafts)
-                return true;
-            craftTimes -= satisfiedCrafts;
+            EmiStack o = outputs.stream().filter(s -> s.getAmount() != 0).findAny().orElse(null);
+            if(o != null) {
+                // Compute required output items as long
+                long totalOutputNeeded = o.getAmount() * craftTimes;
+                long foundOutput = searchSingleStack(totalOutputNeeded, playerInventory, screen, action, o);
+                long satisfiedCrafts = foundOutput / o.getAmount();
+                if (craftTimes <= satisfiedCrafts)
+                    return true;
+                craftTimes -= satisfiedCrafts;
+            }
         }
         for (EmiIngredient ingredient : recipe.getInputs()) {
             if(ingredient.isEmpty())
